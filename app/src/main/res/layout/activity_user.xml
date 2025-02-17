@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Заголовок -->
+    <TextView
+        android:id="@+id/titleTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Запись на услугу"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_gravity="center_horizontal"
+        android:paddingBottom="16dp" />
+
+    <!-- Список доступных услуг -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Выберите услугу:"
+        android:textSize="18sp"
+        android:paddingBottom="8dp" />
+
+    <ListView
+        android:id="@+id/serviceListView"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:divider="@android:color/darker_gray"
+        android:dividerHeight="0.5dp"
+        android:paddingBottom="16dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Выберите дату и время:"
+        android:textSize="18sp"
+        android:paddingBottom="8dp" />
+
+    <TextView
+        android:id="@+id/selectedDateTimeTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Дата и время не выбраны"
+        android:textSize="16sp"
+        android:textColor="@android:color/black"
+        android:paddingBottom="16dp" />
+
+    <Button
+        android:id="@+id/selectDate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Дата"
+        android:textSize="16sp"
+        android:padding="8dp"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/saveServicesButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Сохранить услуги"
+        android:textSize="18sp"
+        android:padding="12dp"
+        android:layout_marginTop="16dp"/>
+
+
+
+
+</LinearLayout>
