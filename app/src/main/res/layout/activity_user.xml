@@ -5,7 +5,6 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <!-- Заголовок -->
     <TextView
         android:id="@+id/titleTextView"
         android:layout_width="wrap_content"
@@ -16,7 +15,6 @@
         android:layout_gravity="center_horizontal"
         android:paddingBottom="16dp" />
 
-    <!-- Список доступных услуг -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -24,12 +22,10 @@
         android:textSize="18sp"
         android:paddingBottom="8dp" />
 
-    <ListView
+    <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/serviceListView"
         android:layout_width="match_parent"
         android:layout_height="200dp"
-        android:divider="@android:color/darker_gray"
-        android:dividerHeight="0.5dp"
         android:paddingBottom="16dp"/>
 
     <TextView
@@ -65,8 +61,5 @@
         android:textSize="18sp"
         android:padding="12dp"
         android:layout_marginTop="16dp"/>
-
-
-
 
 </LinearLayout>

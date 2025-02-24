@@ -1,43 +1,109 @@
 package com.example.androidfirebase;
 
-import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.TextView;
 
-import com.example.androidfirebase.Services;
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
 
-public class ServicesAdapter extends ArrayAdapter<Services> {
+public class ServicesAdapter extends RecyclerView.Adapter<ServicesAdapter.ServiceViewHolder> {
 
-    private final Context context;
-    private final List<Services> services;
+    private List<Services> serviceList;
+    private final OnServicesClickListener listener;
+    private OnItemClickListener itemClickListener; // Новый слушатель для выбора элемента
 
-    public ServicesAdapter(Context context, List<Services> services) {
-        super(context, 0, services);
-        this.context = context;
-        this.services = services;
+    public interface OnServicesClickListener {
+        void onEditClick(Services service);
+        void onDeleteClick(Services service);
+    }
+
+    public interface OnItemClickListener {
+        void onItemClick(Services service);
+    }
+
+    public ServicesAdapter(List<Services> serviceList, OnServicesClickListener listener) {
+        this.serviceList = serviceList;
+        this.listener = listener;
+    }
+
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.itemClickListener = listener;
+    }
+
+    @NonNull
+    @Override
+    public ServiceViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.item_service, parent, false);
+        return new ServiceViewHolder(view);
     }
 
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
-        if (convertView == null) {
-            convertView = LayoutInflater.from(context).inflate(android.R.layout.simple_list_item_2, parent, false);
+    public void onBindViewHolder(@NonNull ServiceViewHolder holder, int position) {
+        Services service = serviceList.get(position);
+        holder.nameTextView.setText(service.getName());
+        holder.descriptionTextView.setText(service.getDescription() + " - $" + service.getCost());
+
+        holder.itemView.setOnClickListener(v -> {
+            if (itemClickListener != null) {
+                itemClickListener.onItemClick(service);
+            }
+        });
+
+        holder.editButton.setVisibility(listener != null ? View.VISIBLE : View.GONE);
+        holder.deleteButton.setVisibility(listener != null ? View.VISIBLE : View.GONE);
+
+        if (listener != null) {
+            holder.editButton.setOnClickListener(v -> listener.onEditClick(service));
+            holder.deleteButton.setOnClickListener(v -> listener.onDeleteClick(service));
         }
+    }
 
-        // Получаем текущий сервис
-        Services service = services.get(position);
+    @Override
+    public int getItemCount() {
+        return serviceList.size();
+    }
 
-        // Находим и заполняем текстовые элементы в списке
-        TextView nameTextView = convertView.findViewById(android.R.id.text1);
-        TextView descriptionTextView = convertView.findViewById(android.R.id.text2);
+    public void addService(Services service) {
+        serviceList.add(service);
+        notifyItemInserted(serviceList.size() - 1);
+    }
 
-        nameTextView.setText(service.getName());
-        descriptionTextView.setText(service.getDescription() + " - $" + service.getPrice());
+    public void updateService(Services updatedService) {
+        for (int i = 0; i < serviceList.size(); i++) {
+            if (serviceList.get(i).getName().equals(updatedService.getName())) {
+                serviceList.set(i, updatedService);
+                notifyItemChanged(i);
+                break;
+            }
+        }
+    }
 
-        return convertView;
+    public void removeService(Services service) {
+        int position = serviceList.indexOf(service);
+        if (position != -1) {
+            serviceList.remove(position);
+            notifyItemRemoved(position);
+        }
+    }
+
+    static class ServiceViewHolder extends RecyclerView.ViewHolder {
+        TextView nameTextView;
+        TextView descriptionTextView;
+        Button editButton;
+        Button deleteButton;
+
+        public ServiceViewHolder(@NonNull View itemView) {
+            super(itemView);
+            nameTextView = itemView.findViewById(R.id.service_name);
+            descriptionTextView = itemView.findViewById(R.id.service_description);
+            editButton = itemView.findViewById(R.id.edit_button);
+            deleteButton = itemView.findViewById(R.id.delete_button);
+        }
     }
 }

@@ -4,14 +4,13 @@ import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -28,14 +27,16 @@ public class UserActivity extends AppCompatActivity {
     private FirebaseAuth auth;
     private FirebaseFirestore db;
 
-    private ListView serviceListView;
-    private Button bookButton, selectedDatebutton;
+    private RecyclerView serviceRecyclerView;
+    private Button bookButton, selectedDateButton;
     private TextView selectedDateTimeTextView;
 
     private String selectedServiceId;
     private String selectedServiceName;
     private String selectedDate;
     private String selectedTime;
+
+    private ServicesAdapter servicesAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,35 +46,19 @@ public class UserActivity extends AppCompatActivity {
         auth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
 
-        serviceListView = findViewById(R.id.serviceListView);
+        serviceRecyclerView = findViewById(R.id.serviceListView);
         bookButton = findViewById(R.id.saveServicesButton);
         selectedDateTimeTextView = findViewById(R.id.selectedDateTimeTextView);
-        selectedDatebutton = findViewById(R.id.selectDate);
+        selectedDateButton = findViewById(R.id.selectDate);
 
+        serviceRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        populateServiceList(""); // Передаем пустую строку для категории
 
-
-        populateServiceList();
-
-        serviceListView.setOnItemClickListener((parent, view, position, id) -> {
-            selectedServiceId = "serviceId" + position;
-            selectedServiceName = "Service " + (position + 1);
-        });
-
-
-        selectedDatebutton.setOnClickListener(v -> {
-            showDatePicker();
-
-
-        });
-
-
-
-        bookButton.setOnClickListener(v -> {
-            createAppointment();
-        });
+        selectedDateButton.setOnClickListener(v -> showDatePicker());
+        bookButton.setOnClickListener(v -> createAppointment());
     }
 
-    private void populateServiceList() {
+    private void populateServiceList(String category) {
         db.collection("Services")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
@@ -83,25 +68,31 @@ public class UserActivity extends AppCompatActivity {
                         for (DocumentSnapshot document : queryDocumentSnapshots.getDocuments()) {
                             String serviceName = document.getString("name");
                             String description = document.getString("description");
-
-                            // Проверка на null для цены
-                            Object priceObject = document.get("cost");
-                            int price = 0;
-                            if (priceObject != null) {
+                            Object costObject = document.get("cost");
+                            String serviceCategory = document.getString("category");
+                            int cost = 0;
+                            if (costObject != null) {
                                 try {
-                                    price = Integer.parseInt(priceObject.toString());
+                                    cost = Integer.parseInt(costObject.toString());
                                 } catch (NumberFormatException e) {
-                                    Log.e("UserActivity", "Invalid price format", e);
+                                    Log.e("UserActivity", "Invalid cost format", e);
                                 }
                             }
 
                             if (serviceName != null && description != null) {
-                                services.add(new Services(serviceName, description, price));
+                                // Фильтруем по категории, если она задана
+                                if (category.isEmpty() || (serviceCategory != null && serviceCategory.equals(category))) {
+                                    services.add(new Services(serviceName, description, cost, serviceCategory));
+                                }
                             }
                         }
 
-                        ServicesAdapter adapter = new ServicesAdapter(this, services);
-                        serviceListView.setAdapter(adapter);
+                        servicesAdapter = new ServicesAdapter(services, null);
+                        servicesAdapter.setOnItemClickListener(service -> {
+                            selectedServiceId = "serviceId" + services.indexOf(service);
+                            selectedServiceName = service.getName();
+                        });
+                        serviceRecyclerView.setAdapter(servicesAdapter);
                     } else {
                         Toast.makeText(this, "No services found.", Toast.LENGTH_SHORT).show();
                     }
@@ -112,15 +103,13 @@ public class UserActivity extends AppCompatActivity {
                 });
     }
 
-
-
     private void showDatePicker() {
         Calendar calendar = Calendar.getInstance();
         DatePickerDialog datePickerDialog = new DatePickerDialog(
                 this,
                 (view, year, month, dayOfMonth) -> {
                     selectedDate = year + "-" + (month + 1) + "-" + dayOfMonth;
-                    showTimePicker(); // После выбора даты сразу открываем выбор времени
+                    showTimePicker();
                 },
                 calendar.get(Calendar.YEAR),
                 calendar.get(Calendar.MONTH),
@@ -144,8 +133,11 @@ public class UserActivity extends AppCompatActivity {
         timePickerDialog.show();
     }
 
-
     private void createAppointment() {
+        if (auth.getCurrentUser() == null) {
+            Toast.makeText(this, "User not authenticated", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (selectedServiceId == null || selectedDate == null || selectedTime == null) {
             Toast.makeText(this, "Please select all fields (service, date, time)", Toast.LENGTH_SHORT).show();
             return;
@@ -172,7 +164,4 @@ public class UserActivity extends AppCompatActivity {
                     Log.e("UserActivity", "Error creating appointment", e);
                 });
     }
-
-
-
 }

@@ -7,11 +7,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -21,7 +17,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class AuthActivity extends AppCompatActivity {
-
 
     private EditText emailField, passwordField;
     private Button loginButton, registerButton;
@@ -41,35 +36,32 @@ public class AuthActivity extends AppCompatActivity {
         loginButton = findViewById(R.id.log);
         registerButton = findViewById(R.id.reg);
 
-
-        loginButton.setOnClickListener(v -> {
-            loginUser();
-        });
-
-        registerButton.setOnClickListener(v -> {
-            registerUser();
-        });
-
-
+        loginButton.setOnClickListener(v -> loginUser());
+        registerButton.setOnClickListener(v -> registerUser());
     }
 
     private void loginUser() {
-        String email = emailField.getText().toString();
-        String password = passwordField.getText().toString();
+        String email = emailField.getText().toString().trim();
+        String password = passwordField.getText().toString().trim();
+
+        if (email.isEmpty() || password.isEmpty()) {
+            Toast.makeText(this, "Пожалуйста, заполните все поля", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
         auth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         checkUserRole();
                     } else {
-                        Toast.makeText(this, "Ошибка авторизации", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "Ошибка авторизации: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
     }
 
     private void registerUser() {
-        String email = emailField.getText().toString();
-        String password = passwordField.getText().toString();
+        String email = emailField.getText().toString().trim();
+        String password = passwordField.getText().toString().trim();
 
         if (email.isEmpty() || password.isEmpty()) {
             Toast.makeText(this, "Пожалуйста, заполните все поля", Toast.LENGTH_SHORT).show();
@@ -85,20 +77,16 @@ public class AuthActivity extends AppCompatActivity {
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
                         Toast.makeText(this, "Регистрация успешна", Toast.LENGTH_SHORT).show();
-                        saveUserToFirestore();
-
+                        saveUserToFirestore("user"); // Фиксированная роль "user"
                         loginUser();
                     } else {
-                        if (task.getException() != null) {
-                            String errorMessage = task.getException().getMessage();
-                            Toast.makeText(this, "Ошибка регистрации: " + errorMessage, Toast.LENGTH_SHORT).show();
-                        }
+                        String errorMessage = task.getException() != null ? task.getException().getMessage() : "Неизвестная ошибка";
+                        Toast.makeText(this, "Ошибка регистрации: " + errorMessage, Toast.LENGTH_SHORT).show();
                     }
                 });
     }
 
-
-    private void saveUserToFirestore() {
+    private void saveUserToFirestore(String role) {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
             Log.e("Firestore", "Ошибка: пользователь не найден");
@@ -108,35 +96,53 @@ public class AuthActivity extends AppCompatActivity {
         String userId = user.getUid();
         Map<String, Object> userData = new HashMap<>();
         userData.put("email", user.getEmail());
-        userData.put("role", "user");
+        userData.put("role", role);
 
         db.collection("users").document(userId).set(userData)
-                .addOnSuccessListener(aVoid -> Log.d("Firestore", "Пользователь сохранен в Firestore"))
+                .addOnSuccessListener(aVoid -> Log.d("Firestore", "Пользователь сохранен в Firestore с ролью: " + role))
                 .addOnFailureListener(e -> Log.e("Firestore", "Ошибка сохранения пользователя", e));
     }
-
 
     private void checkUserRole() {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
             Toast.makeText(this, "Пользователь не авторизован", Toast.LENGTH_SHORT).show();
-            return;  // Прерываем выполнение, если пользователя нет
+            return;
         }
-
 
         String userId = user.getUid();
         db.collection("users").document(userId).get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         String role = documentSnapshot.getString("role");
-                        if ("admin".equals(role)) {
-                            startActivity(new Intent(this, AdminActivity.class));
-                        } else {
-                            startActivity(new Intent(this, UserActivity.class));
+                        if (role == null) {
+                            Toast.makeText(this, "Роль пользователя не определена", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        switch (role) {
+                            case "admin":
+                                startActivity(new Intent(this, AdminActivity.class));
+                                break;
+                            case "worker":
+                                startActivity(new Intent(this, WorkerActivity.class));
+                                break;
+                            case "user":
+                                startActivity(new Intent(this, UserActivity.class));
+                                break;
+                            default:
+                                Toast.makeText(this, "Неизвестная роль: " + role, Toast.LENGTH_SHORT).show();
+                                return;
                         }
                         finish();
+                    } else {
+                        Toast.makeText(this, "Данные пользователя не найдены", Toast.LENGTH_SHORT).show();
+                        Log.w("Firestore", "Документ пользователя не существует: " + userId);
                     }
                 })
-                .addOnFailureListener(e -> Log.e("Firestore", "Ошибка при получении роли", e));
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Ошибка при получении роли", Toast.LENGTH_SHORT).show();
+                    Log.e("Firestore", "Ошибка при получении роли", e);
+                });
     }
 }

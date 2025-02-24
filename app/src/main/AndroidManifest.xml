@@ -12,14 +12,15 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.AndroidFirebase"
         tools:targetApi="31">
-
+        <activity
+            android:name=".WorkerActivity"
+            android:exported="false" />
         <activity
             android:name=".UserActivity"
             android:exported="false" />
         <activity
             android:name=".AdminActivity"
             android:exported="false" />
-
         <activity
             android:name=".AuthActivity"
             android:exported="true">
